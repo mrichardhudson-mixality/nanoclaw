@@ -35,29 +35,19 @@ beforeEach(() => {
 describe('readonlyMountArgs', () => {
   it('returns --mount flag with type=bind and readonly', () => {
     const args = readonlyMountArgs('/host/path', '/container/path');
-    expect(args).toEqual([
-      '--mount',
-      'type=bind,source=/host/path,target=/container/path,readonly',
-    ]);
+    expect(args).toEqual(['--mount', 'type=bind,source=/host/path,target=/container/path,readonly']);
   });
 });
 
 describe('stopContainer', () => {
   it('calls docker stop for valid container names', () => {
     stopContainer('nanoclaw-test-123');
-    expect(mockExecSync).toHaveBeenCalledWith(
-      `${CONTAINER_RUNTIME_BIN} stop nanoclaw-test-123`,
-      { stdio: 'pipe' },
-    );
+    expect(mockExecSync).toHaveBeenCalledWith(`${CONTAINER_RUNTIME_BIN} stop nanoclaw-test-123`, { stdio: 'pipe' });
   });
 
   it('rejects names with shell metacharacters', () => {
-    expect(() => stopContainer('foo; rm -rf /')).toThrow(
-      'Invalid container name',
-    );
-    expect(() => stopContainer('foo$(whoami)')).toThrow(
-      'Invalid container name',
-    );
+    expect(() => stopContainer('foo; rm -rf /')).toThrow('Invalid container name');
+    expect(() => stopContainer('foo$(whoami)')).toThrow('Invalid container name');
     expect(() => stopContainer('foo`id`')).toThrow('Invalid container name');
     expect(mockExecSync).not.toHaveBeenCalled();
   });
@@ -72,10 +62,7 @@ describe('ensureContainerRuntimeRunning', () => {
     ensureContainerRuntimeRunning();
 
     expect(mockExecSync).toHaveBeenCalledTimes(1);
-    expect(mockExecSync).toHaveBeenCalledWith(
-      `${CONTAINER_RUNTIME_BIN} system status`,
-      { stdio: 'pipe' },
-    );
+    expect(mockExecSync).toHaveBeenCalledWith(`${CONTAINER_RUNTIME_BIN} system status`, { stdio: 'pipe' });
     expect(log.debug).toHaveBeenCalledWith('Container runtime already running');
   });
 
@@ -90,11 +77,10 @@ describe('ensureContainerRuntimeRunning', () => {
     ensureContainerRuntimeRunning();
 
     expect(mockExecSync).toHaveBeenCalledTimes(2);
-    expect(mockExecSync).toHaveBeenNthCalledWith(
-      2,
-      `${CONTAINER_RUNTIME_BIN} system start`,
-      { stdio: 'pipe', timeout: 30000 },
-    );
+    expect(mockExecSync).toHaveBeenNthCalledWith(2, `${CONTAINER_RUNTIME_BIN} system start`, {
+      stdio: 'pipe',
+      timeout: 30000,
+    });
     expect(log.info).toHaveBeenCalledWith('Container runtime started');
   });
 
@@ -127,16 +113,12 @@ describe('cleanupOrphans', () => {
 
     // ls + 2 stop calls (only running nanoclaw- containers)
     expect(mockExecSync).toHaveBeenCalledTimes(3);
-    expect(mockExecSync).toHaveBeenNthCalledWith(
-      2,
-      `${CONTAINER_RUNTIME_BIN} stop nanoclaw-group1-111`,
-      { stdio: 'pipe' },
-    );
-    expect(mockExecSync).toHaveBeenNthCalledWith(
-      3,
-      `${CONTAINER_RUNTIME_BIN} stop nanoclaw-group3-333`,
-      { stdio: 'pipe' },
-    );
+    expect(mockExecSync).toHaveBeenNthCalledWith(2, `${CONTAINER_RUNTIME_BIN} stop nanoclaw-group1-111`, {
+      stdio: 'pipe',
+    });
+    expect(mockExecSync).toHaveBeenNthCalledWith(3, `${CONTAINER_RUNTIME_BIN} stop nanoclaw-group3-333`, {
+      stdio: 'pipe',
+    });
     expect(log.info).toHaveBeenCalledWith('Stopped orphaned containers', {
       count: 2,
       names: ['nanoclaw-group1-111', 'nanoclaw-group3-333'],
