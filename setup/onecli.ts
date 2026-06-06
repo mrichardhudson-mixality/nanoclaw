@@ -67,7 +67,9 @@ export function getOnecliApiHost(): string | null {
 
 function extractUrlFromOutput(output: string): string | null {
   const match = output.match(/https?:\/\/[\w.\-]+(?::\d+)?/);
-  return match ? match[0] : null;
+  if (!match) return null;
+  // 0.0.0.0 is a valid bind address but not a connectable URL; use loopback.
+  return match[0].replace('://0.0.0.0', '://127.0.0.1');
 }
 
 function ensureShellProfilePath(): void {
@@ -153,8 +155,15 @@ function installOnecli(): { stdout: string; ok: boolean } {
   const cleanup = removeLegacyOnecliContainers();
   if (cleanup) stdout += cleanup + '\n';
 
+  // On WSL2 (and Linux generally) the installer can't auto-detect which
+  // interface to bind to when multiple non-loopback addresses exist.
+  // Default to 0.0.0.0 so the gateway is reachable from Docker bridge
+  // networks, but let the caller override via ONECLI_BIND_HOST.
+  const bindHost = process.env.ONECLI_BIND_HOST ?? (process.platform === 'linux' ? '0.0.0.0' : undefined);
+  const bindEnv = bindHost ? `export ONECLI_BIND_HOST=${bindHost} && ` : '';
+
   // Gateway install (docker-compose based, no rate-limit concerns).
-  const gw = runInstall(`export ONECLI_VERSION=${ONECLI_GATEWAY_VERSION} && curl -fsSL onecli.sh/install | sh`);
+  const gw = runInstall(`${bindEnv}export ONECLI_VERSION=${ONECLI_GATEWAY_VERSION} && curl -fsSL onecli.sh/install | sh`);
   stdout += gw.stdout;
   if (!gw.ok) {
     log.error('OneCLI gateway install failed', { stderr: gw.stderr });
