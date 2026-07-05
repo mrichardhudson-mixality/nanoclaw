@@ -14,10 +14,17 @@ import {
   CONTAINER_IMAGE_BASE,
   CONTAINER_INSTALL_LABEL,
   DATA_DIR,
+  GITHUB_TOKEN,
   GROUPS_DIR,
   ONECLI_API_KEY,
   ONECLI_URL,
+  STRIPE_SECRET_KEY,
   TIMEZONE,
+  X_ACCESS_TOKEN,
+  X_ACCESS_TOKEN_SECRET,
+  X_BEARER_TOKEN,
+  X_CONSUMER_KEY,
+  X_CONSUMER_SECRET,
 } from './config.js';
 import { materializeContainerJson } from './container-config.js';
 import { getContainerConfig } from './db/container-configs.js';
@@ -410,6 +417,23 @@ async function buildContainerArgs(
   // Environment — only vars read by code we don't own.
   // Everything NanoClaw-specific is in container.json (read by runner at startup).
   args.push('-e', `TZ=${TIMEZONE}`);
+
+  // Stripe credential — injected directly since OneCLI manages it when available.
+  if (STRIPE_SECRET_KEY) {
+    args.push('-e', `STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}`);
+  }
+
+  // GitHub token — injected directly.
+  if (GITHUB_TOKEN) {
+    args.push('-e', `GITHUB_TOKEN=${GITHUB_TOKEN}`);
+  }
+
+  // X (Twitter) credentials — injected directly.
+  if (X_CONSUMER_KEY) args.push('-e', `X_CONSUMER_KEY=${X_CONSUMER_KEY}`);
+  if (X_CONSUMER_SECRET) args.push('-e', `X_CONSUMER_SECRET=${X_CONSUMER_SECRET}`);
+  if (X_BEARER_TOKEN) args.push('-e', `X_BEARER_TOKEN=${X_BEARER_TOKEN}`);
+  if (X_ACCESS_TOKEN) args.push('-e', `X_ACCESS_TOKEN=${X_ACCESS_TOKEN}`);
+  if (X_ACCESS_TOKEN_SECRET) args.push('-e', `X_ACCESS_TOKEN_SECRET=${X_ACCESS_TOKEN_SECRET}`);
 
   // Provider-contributed env vars (e.g. XDG_DATA_HOME, OPENCODE_*, NO_PROXY).
   if (providerContribution.env) {

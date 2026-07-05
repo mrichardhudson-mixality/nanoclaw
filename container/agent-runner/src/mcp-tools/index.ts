@@ -10,6 +10,8 @@ import './scheduling.js';
 import './interactive.js';
 import './agents.js';
 import './self-mod.js';
+import './stripe.js';
+import './x.js';
 import { startMcpServer } from './server.js';
 
 function log(msg: string): void {

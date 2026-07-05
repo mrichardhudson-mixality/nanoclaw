@@ -6,7 +6,20 @@ import { getContainerImageBase, getDefaultContainerImage, getInstallSlug } from 
 import { isValidTimezone } from './timezone.js';
 
 // Read config values from .env (falls back to process.env).
-const envConfig = readEnvFile(['ASSISTANT_NAME', 'ASSISTANT_HAS_OWN_NUMBER', 'ONECLI_URL', 'ONECLI_API_KEY', 'TZ']);
+const envConfig = readEnvFile([
+  'ASSISTANT_NAME',
+  'ASSISTANT_HAS_OWN_NUMBER',
+  'ONECLI_URL',
+  'ONECLI_API_KEY',
+  'TZ',
+  'STRIPE_SECRET_KEY',
+  'GITHUB_TOKEN',
+  'X_CONSUMER_KEY',
+  'X_CONSUMER_SECRET',
+  'X_BEARER_TOKEN',
+  'X_ACCESS_TOKEN',
+  'X_ACCESS_TOKEN_SECRET',
+]);
 
 export const ASSISTANT_NAME = process.env.ASSISTANT_NAME || envConfig.ASSISTANT_NAME || 'Andy';
 export const ASSISTANT_HAS_OWN_NUMBER =
@@ -66,3 +79,11 @@ function resolveConfigTimezone(): string {
   return 'UTC';
 }
 export const TIMEZONE = resolveConfigTimezone();
+
+export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || envConfig.STRIPE_SECRET_KEY || '';
+export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || envConfig.GITHUB_TOKEN || '';
+export const X_CONSUMER_KEY = process.env.X_CONSUMER_KEY || envConfig.X_CONSUMER_KEY || '';
+export const X_CONSUMER_SECRET = process.env.X_CONSUMER_SECRET || envConfig.X_CONSUMER_SECRET || '';
+export const X_BEARER_TOKEN = process.env.X_BEARER_TOKEN || envConfig.X_BEARER_TOKEN || '';
+export const X_ACCESS_TOKEN = process.env.X_ACCESS_TOKEN || envConfig.X_ACCESS_TOKEN || '';
+export const X_ACCESS_TOKEN_SECRET = process.env.X_ACCESS_TOKEN_SECRET || envConfig.X_ACCESS_TOKEN_SECRET || '';

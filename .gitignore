@@ -39,3 +39,6 @@ groups/*
 .nanoclaw/
 
 agents-sdk-docs
+
+# runtime process-id files
+*.pid

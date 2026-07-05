@@ -17,6 +17,7 @@ import os from 'os';
 import path from 'path';
 
 import { log } from '../src/log.js';
+import { isWSL } from './platform.js';
 import { emitStatus } from './status.js';
 
 const LOCAL_BIN = path.join(os.homedir(), '.local', 'bin');
@@ -147,14 +148,52 @@ function removeLegacyOnecliContainers(): string {
   return out.join('\n');
 }
 
+/**
+ * In WSL, the OneCLI installer can't auto-detect a safe bind address because
+ * the machine has multiple interfaces (eth0, lo, docker bridges). We resolve
+ * the eth0 IP and pass it as ONECLI_BIND_HOST so the installer doesn't abort.
+ * Falls back to 127.0.0.1 if detection fails (host-only, no container reach).
+ */
+function getWslBindHost(): string {
+  try {
+    const out = execSync("ip -4 addr show eth0 | grep -oP '(?<=inet )\\d+\\.\\d+\\.\\d+\\.\\d+'", {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+    if (out) return out;
+  } catch {
+    // fall through
+  }
+  try {
+    const out = execSync("hostname -I", { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    const first = out.split(/\s+/)[0];
+    if (first) return first;
+  } catch {
+    // fall through
+  }
+  return '127.0.0.1';
+}
+
 function installOnecli(): { stdout: string; ok: boolean } {
   let stdout = '';
 
   const cleanup = removeLegacyOnecliContainers();
   if (cleanup) stdout += cleanup + '\n';
 
+  // In WSL the installer cannot auto-detect the bind address. Provide it.
+  const extraEnv: NodeJS.ProcessEnv = {};
+  if (isWSL() && !process.env.ONECLI_BIND_HOST) {
+    const bindHost = getWslBindHost();
+    extraEnv['ONECLI_BIND_HOST'] = bindHost;
+    log.info('WSL detected — setting ONECLI_BIND_HOST', { bindHost });
+    stdout += `WSL detected: setting ONECLI_BIND_HOST=${bindHost}\n`;
+  }
+
   // Gateway install (docker-compose based, no rate-limit concerns).
-  const gw = runInstall(`export ONECLI_VERSION=${ONECLI_GATEWAY_VERSION} && curl -fsSL onecli.sh/install | sh`);
+  const gw = runInstall(
+    `export ONECLI_VERSION=${ONECLI_GATEWAY_VERSION} && curl -fsSL onecli.sh/install | sh`,
+    extraEnv,
+  );
   stdout += gw.stdout;
   if (!gw.ok) {
     log.error('OneCLI gateway install failed', { stderr: gw.stderr });
@@ -166,7 +205,7 @@ function installOnecli(): { stdout: string; ok: boolean } {
   // callers after 60 requests/hour per IP. Try upstream first; on failure
   // resolve the version ourselves (via HTTP redirect, which isn't
   // API-throttled) and download the release archive directly.
-  const upstream = runInstall('curl -fsSL onecli.sh/cli/install | sh');
+  const upstream = runInstall('curl -fsSL onecli.sh/cli/install | sh', extraEnv);
   stdout += upstream.stdout;
   if (upstream.ok) return { stdout, ok: true };
 
@@ -184,11 +223,15 @@ function installOnecli(): { stdout: string; ok: boolean } {
   return { stdout, ok: true };
 }
 
-function runInstall(cmd: string): { stdout: string; stderr?: string; ok: boolean } {
+function runInstall(
+  cmd: string,
+  extraEnv?: NodeJS.ProcessEnv,
+): { stdout: string; stderr?: string; ok: boolean } {
   try {
     const stdout = execSync(cmd, {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
     });
     return { stdout, ok: true };
   } catch (err) {
