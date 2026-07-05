@@ -4,5 +4,7 @@ onlyBuiltDependencies:
   - protobufjs
   - sharp
 
-pnpm:
-  minimumReleaseAge: 4320
+# Must be top-level: in pnpm-workspace.yaml, pnpm settings live at the root.
+# Nesting this under `pnpm:` (the package.json format) is silently ignored by
+# both pnpm 10 and 11, which leaves the 3-day supply-chain gate disabled.
+minimumReleaseAge: 4320
